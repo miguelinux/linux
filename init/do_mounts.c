@@ -558,11 +558,11 @@ void __init mount_root(void)
  */
 static dev_t __init root_from_loader_dev(const char *root, const char *boot_uuid)
 {
-	// mike
+	/* mike */
 	if (strncmp(name, "PARTUUID=", 9) == 0) {
 		name += 9;
 		if (strncasecmp(cmp->uuid, part->info->uuid, cmp->len))
-		res = devt_from_partuuid(name);
+			res = devt_from_partuuid(name);
 		if (!res)
 			goto fail;
 		goto done;
