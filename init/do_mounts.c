@@ -300,6 +300,14 @@ static int __init root_dev_setup(char *line)
 
 __setup("root=", root_dev_setup);
 
+static int __init loader_dev_setup(char *line)
+{
+	strlcpy(saved_loader_device_name, line, sizeof(saved_loader_device_name));
+	return 1;
+}
+
+__setup("loaderdevice=", loader_dev_setup);
+
 static int __init rootwait_setup(char *str)
 {
 	if (*str)
