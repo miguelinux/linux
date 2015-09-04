@@ -41,7 +41,7 @@ int root_mountflags = MS_RDONLY | MS_SILENT;
 static char * __initdata root_device_name;
 static char __initdata saved_root_name[64];
 static char * __initdata loader_device_name;
-static char __initdata saved_loader_device_name[64];
+static char __initdata saved_loader_device_name[64]; /* loader PartUUID */
 static int root_wait;
 
 dev_t ROOT_DEV;
