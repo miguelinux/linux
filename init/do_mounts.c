@@ -554,6 +554,22 @@ void __init mount_root(void)
 }
 
 /*
+ * return the root dev which is in the same device as the loader.
+ */
+static dev_t __init root_from_loader_dev(const char *root, const char *boot_uuid)
+{
+	// mike
+	if (strncmp(name, "PARTUUID=", 9) == 0) {
+		name += 9;
+		if (strncasecmp(cmp->uuid, part->info->uuid, cmp->len))
+		res = devt_from_partuuid(name);
+		if (!res)
+			goto fail;
+		goto done;
+	}
+}
+
+/*
  * Prepare the namespace - decide what/where to mount, load ramdisks, etc.
  */
 void __init prepare_namespace(void)
@@ -584,7 +600,13 @@ void __init prepare_namespace(void)
 			mount_block_root(root_device_name, root_mountflags);
 			goto out;
 		}
-		ROOT_DEV = name_to_dev_t(root_device_name);
+		if (saved_loader_device_name[0]) {
+			loader_device_name = saved_loader_device_name;
+			ROOT_DEV = root_from_loader_dev(root_device_name,
+							loader_device_name);
+		} else {
+			ROOT_DEV = name_to_dev_t(root_device_name);
+		}
 		if (strncmp(root_device_name, "/dev/", 5) == 0)
 			root_device_name += 5;
 	}
