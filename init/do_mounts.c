@@ -556,17 +556,33 @@ void __init mount_root(void)
 /*
  * return the root dev which is in the same device as the loader.
  */
-static dev_t __init root_from_loader_dev(const char *root, const char *boot_uuid)
+static dev_t __init root_from_loader_dev(const char *root_str, const char *boot_uuid)
 {
+	dev_t res = 0;
+
+	struct uuidcmp cmp;
+
+	struct device *dev = NULL;
+	struct gendisk *disk;
+	struct hd_struct *part;
+	int offset = 0;
+	bool clear_root_wait = false;
+	char *slash;
+
+	cmp.uuid = root_str;
+	cmp.len = strlen(root_str);
+
 	/* mike */
-	if (strncmp(name, "PARTUUID=", 9) == 0) {
-		name += 9;
-		if (strncasecmp(cmp->uuid, part->info->uuid, cmp->len))
-			res = devt_from_partuuid(name);
-		if (!res)
-			goto fail;
-		goto done;
+	/* Clear Linux PartUUID root device */
+	if (strncasecmp(root_str,
+			"PARTUUID=4f68bce3-e8cd-4db1-96e7-fbcaf984b709") == 0) {
+		root_str += 9;
+		res = devt_from_partuuid(root_str);
+		put_device(dev);
+	} else {
+		res = name_to_dev_t(root_str);
 	}
+	return res;
 }
 
 /*
