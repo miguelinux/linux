@@ -101,7 +101,6 @@ no_match:
 	return 0;
 }
 
-
 /**
  * devt_from_partuuid - looks up the dev_t of a partition by its UUID
  * @uuid_str:	char array containing ascii UUID
@@ -564,26 +563,82 @@ static dev_t __init root_from_loader_dev(const char *root_str, const char *boot_
 	struct uuidcmp cmp;
 
 	struct device *dev = NULL;
-	struct gendisk *disk;
 	struct hd_struct *part;
-	int offset = 0;
-	bool clear_root_wait = false;
-	char *slash;
+	struct class *class;
 
-	cmp.uuid = root_str;
-	cmp.len = strlen(root_str);
+	struct class_dev_iter iter;
+	struct hd_struct *part;
 
 	/* mike */
 	/* Clear Linux PartUUID root device */
 	if (strncasecmp(root_str,
 			"PARTUUID=4f68bce3-e8cd-4db1-96e7-fbcaf984b709") == 0) {
+
 		root_str += 9;
-		res = devt_from_partuuid(root_str);
+
+		cmp.uuid = root_str;
+		cmp.len = strlen(root_str);
+
+		/*dev = class_find_device(&block_class, NULL, &cmp,
+					&match_dev_by_uuid);*/
+
+		class = &block_class;
+
+		if (!class)
+			goto no_init_block_class;
+		if (!class->p) {
+			WARN(1, "%s called for class '%s' before it was initialized",
+			__func__, class->name);
+			goto no_init_block_class;
+		}
+
+		class_dev_iter_init(&iter, class, NULL, NULL);
+		while ((dev = class_dev_iter_next(&iter))) {
+
+			if (match(dev, data)) {
+				get_device(dev);
+				break;
+			}
+
+			part = dev_to_part(dev);
+
+			if (!part->info)
+				continue;
+
+			if (strncasecmp(cmp->uuid, part->info->uuid, cmp->len))
+				continue;
+
+			get_device(dev);
+			break;
+		}
+		class_dev_iter_exit(&iter);
+
+		return dev;
+
+/******/
+static int __init match_dev_by_boot(struct device *dev, const void *data)
+{
+	const struct uuidcmp *cmp = data;
+
+	if (!part->info)
+		goto no_match;
+
+	if (strncasecmp(cmp->uuid, part->info->uuid, cmp->len))
+		goto no_match;
+
+	return 1;
+no_match:
+	return 0;
+}
+
+/******/
+
 		put_device(dev);
 	} else {
 		res = name_to_dev_t(root_str);
 	}
 #endif
+no_init_block_class:
 	return res;
 }
 
@@ -593,6 +648,7 @@ static dev_t __init root_from_loader_dev(const char *root_str, const char *boot_
 void __init prepare_namespace(void)
 {
 	int is_floppy;
+	int three_sec = 30; /* 30 x 100 msec = 3 sec */
 
 	if (root_delay) {
 		printk(KERN_INFO "Waiting %d sec before mounting root device...\n",
@@ -620,8 +676,15 @@ void __init prepare_namespace(void)
 		}
 		if (saved_loader_device_name[0]) {
 			loader_device_name = saved_loader_device_name;
-			ROOT_DEV = root_from_loader_dev(root_device_name,
+			do {
+				ROOT_DEV = root_from_loader_dev(root_device_name,
 							loader_device_name);
+				if (ROOT_DEV == 0)
+					msleep(100);
+				three_sec--;
+			} while( (ROOT_DEV == 0 || driver_probe_done() != 0) 
+					&& three_sec );
+			async_synchronize_full();
 		} else {
 			ROOT_DEV = name_to_dev_t(root_device_name);
 		}
