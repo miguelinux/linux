@@ -560,6 +560,7 @@ static dev_t __init root_from_loader_dev(const char *root_str, const char *boot_
 {
 	dev_t res = 0;
 
+#ifdef CONFIG_BLOCK
 	struct uuidcmp cmp;
 
 	struct device *dev = NULL;
@@ -582,6 +583,7 @@ static dev_t __init root_from_loader_dev(const char *root_str, const char *boot_
 	} else {
 		res = name_to_dev_t(root_str);
 	}
+#endif
 	return res;
 }
 
