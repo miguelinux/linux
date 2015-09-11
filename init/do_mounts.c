@@ -560,7 +560,10 @@ static dev_t __init root_from_loader_dev(const char *root_str, const char *boot_
 	dev_t res = 0;
 
 #ifdef CONFIG_BLOCK
-	struct uuidcmp cmp;
+	struct uuidcmp root_id;
+	struct uuidcmp boot_id;
+	bool boot_not_found = true;
+
 
 	struct device *dev = NULL;
 	struct hd_struct *part;
@@ -576,10 +579,13 @@ static dev_t __init root_from_loader_dev(const char *root_str, const char *boot_
 
 		root_str += 9;
 
-		cmp.uuid = root_str;
-		cmp.len = strlen(root_str);
+		root_id.uuid = root_str;
+		root_id.len = strlen(root_str);
 
-		/*dev = class_find_device(&block_class, NULL, &cmp,
+		boot_id.uuid = boot_str;
+		boot_id.len = strlen(boot_str);
+
+		/*dev = class_find_device(&block_class, NULL, &root_id,
 					&match_dev_by_uuid);*/
 
 		class = &block_class;
@@ -595,17 +601,22 @@ static dev_t __init root_from_loader_dev(const char *root_str, const char *boot_
 		class_dev_iter_init(&iter, class, NULL, NULL);
 		while ((dev = class_dev_iter_next(&iter))) {
 
+			/*
 			if (match(dev, data)) {
 				get_device(dev);
 				break;
 			}
+			*/
 
 			part = dev_to_part(dev);
 
 			if (!part->info)
 				continue;
 
-			if (strncasecmp(cmp->uuid, part->info->uuid, cmp->len))
+			if (boot_not_found)
+				if (strncasecmp(boot_id->uuid, part->info->uuid, boot_id->len))
+
+			if (strncasecmp(root_id->uuid, part->info->uuid, root_id->len))
 				continue;
 
 			get_device(dev);
