@@ -681,7 +681,7 @@ void __init prepare_namespace(void)
 
 				four_sec--;
 
-			} while((ROOT_DEV == 0 || driver_probe_done() != 0)
+			} while( (ROOT_DEV == 0 || driver_probe_done() != 0)
 					&& four_sec);
 			async_synchronize_full();
 		} else {
