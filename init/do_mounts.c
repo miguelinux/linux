@@ -572,7 +572,6 @@ static dev_t __init root_from_loader_dev(const char *root_str, const char *boot_
 	struct class_dev_iter iter;
 	struct hd_struct *part;
 
-	/* mike */
 	/* Clear Linux PartUUID root device */
 	if (strncasecmp(root_str,
 			"PARTUUID=4f68bce3-e8cd-4db1-96e7-fbcaf984b709") == 0) {
@@ -585,28 +584,18 @@ static dev_t __init root_from_loader_dev(const char *root_str, const char *boot_
 		boot_id.uuid = boot_str;
 		boot_id.len = strlen(boot_str);
 
-		/*dev = class_find_device(&block_class, NULL, &root_id,
-					&match_dev_by_uuid);*/
-
 		class = &block_class;
 
 		if (!class)
-			goto no_init_block_class;
+			goto done_search;
 		if (!class->p) {
 			WARN(1, "%s called for class '%s' before it was initialized",
 			__func__, class->name);
-			goto no_init_block_class;
+			goto done_search;
 		}
 
 		class_dev_iter_init(&iter, class, NULL, NULL);
 		while ((dev = class_dev_iter_next(&iter))) {
-
-			/*
-			if (match(dev, data)) {
-				get_device(dev);
-				break;
-			}
-			*/
 
 			part = dev_to_part(dev);
 
@@ -614,9 +603,16 @@ static dev_t __init root_from_loader_dev(const char *root_str, const char *boot_
 				continue;
 
 			if (boot_not_found)
-				if (strncasecmp(boot_id->uuid, part->info->uuid, boot_id->len))
+				if (strncasecmp(boot_id->uuid, part->info->uuid,
+							boot_id->len))
+					continue;
+				else {
+					boot_not_found = false;
+					continue;
+				}
 
-			if (strncasecmp(root_id->uuid, part->info->uuid, root_id->len))
+			if (strncasecmp(root_id->uuid, part->info->uuid,
+						root_id->len))
 				continue;
 
 			get_device(dev);
@@ -624,32 +620,17 @@ static dev_t __init root_from_loader_dev(const char *root_str, const char *boot_
 		}
 		class_dev_iter_exit(&iter);
 
-		return dev;
+		if (!dev)
+			goto done_search;
 
-/******/
-static int __init match_dev_by_boot(struct device *dev, const void *data)
-{
-	const struct uuidcmp *cmp = data;
-
-	if (!part->info)
-		goto no_match;
-
-	if (strncasecmp(cmp->uuid, part->info->uuid, cmp->len))
-		goto no_match;
-
-	return 1;
-no_match:
-	return 0;
-}
-
-/******/
+		res = dev->devt;
 
 		put_device(dev);
 	} else {
 		res = name_to_dev_t(root_str);
 	}
 #endif
-no_init_block_class:
+done_search:
 	return res;
 }
 
