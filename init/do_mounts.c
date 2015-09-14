@@ -566,23 +566,23 @@ static dev_t __init root_from_loader_dev(const char *root_str, const char *boot_
 
 
 	struct device *dev = NULL;
-	struct hd_struct *part;
 	struct class *class;
 
 	struct class_dev_iter iter;
 	struct hd_struct *part;
 
 	/* Clear Linux PartUUID root device */
-	if (strncasecmp(root_str,
-			"PARTUUID=4f68bce3-e8cd-4db1-96e7-fbcaf984b709") == 0) {
+	if (strncmp(root_str,
+			"PARTUUID=4f68bce3-e8cd-4db1-96e7-fbcaf984b709",
+			strlen(root_str)) == 0) {
 
 		root_str += 9;
 
 		root_id.uuid = root_str;
 		root_id.len = strlen(root_str);
 
-		boot_id.uuid = boot_str;
-		boot_id.len = strlen(boot_str);
+		boot_id.uuid = boot_uuid;
+		boot_id.len = strlen(boot_uuid);
 
 		class = &block_class;
 
@@ -602,17 +602,18 @@ static dev_t __init root_from_loader_dev(const char *root_str, const char *boot_
 			if (!part->info)
 				continue;
 
-			if (boot_not_found)
-				if (strncasecmp(boot_id->uuid, part->info->uuid,
-							boot_id->len))
+			if (boot_not_found) {
+				if (strncasecmp(boot_id.uuid, part->info->uuid,
+							boot_id.len))
 					continue;
 				else {
 					boot_not_found = false;
 					continue;
 				}
+			}
 
-			if (strncasecmp(root_id->uuid, part->info->uuid,
-						root_id->len))
+			if (strncasecmp(root_id.uuid, part->info->uuid,
+						root_id.len))
 				continue;
 
 			get_device(dev);
