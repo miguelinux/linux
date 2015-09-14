@@ -305,7 +305,7 @@ static int __init loader_dev_setup(char *line)
 	return 1;
 }
 
-__setup("loaderdevice=", loader_dev_setup);
+__setup("deviceloader=", loader_dev_setup);
 
 static int __init rootwait_setup(char *str)
 {
@@ -641,7 +641,7 @@ done_search:
 void __init prepare_namespace(void)
 {
 	int is_floppy;
-	int three_sec = 30; /* 30 x 100 msec = 3 sec */
+	int four_sec = 40; /* 40 x 100 msec = 4 sec */
 
 	if (root_delay) {
 		printk(KERN_INFO "Waiting %d sec before mounting root device...\n",
@@ -669,14 +669,20 @@ void __init prepare_namespace(void)
 		}
 		if (saved_loader_device_name[0]) {
 			loader_device_name = saved_loader_device_name;
+			printk(KERN_INFO "Looking for boot device %s...\n",
+				saved_loader_device_name);
 			do {
 				ROOT_DEV = root_from_loader_dev(root_device_name,
 							loader_device_name);
 				if (ROOT_DEV == 0)
 					msleep(100);
-				three_sec--;
+				else
+					break;
+
+				four_sec--;
+
 			} while( (ROOT_DEV == 0 || driver_probe_done() != 0) 
-					&& three_sec );
+					&& four_sec );
 			async_synchronize_full();
 		} else {
 			ROOT_DEV = name_to_dev_t(root_device_name);
